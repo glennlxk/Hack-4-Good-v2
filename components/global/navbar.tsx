@@ -34,7 +34,7 @@ export const Navbar = () => {
           </div>
           <div className="hidden md:flex items-center justify-start space-x-6">
             <div>
-              <Link href={"/about"}>About</Link>
+              <Link href={"/tasks"}>tasks</Link>
             </div>
             <div>
               <Link href={"/listing"}>Marketplace</Link>
