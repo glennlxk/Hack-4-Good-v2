@@ -1,12 +1,9 @@
-import Navbar from "@/components/global/navbar";
 import PopularListing from "@/components/global/popularListing";
 // To Do List -- Build Stripe Integrate, Test out component
 
 export default function Home() {
   return (
     <div className="min-h-full w-full bg-primary-100 overflow-hidden ">
-      {/* navbar */}
-      <Navbar />
       {/* Hero section */}
       <div className="relative tracking-tight">
         <div className="w-[100vw] h-[32rem] bg-cover -z-10 bg-[url('/hero-background.jpg')] flex items-center justify-center">
