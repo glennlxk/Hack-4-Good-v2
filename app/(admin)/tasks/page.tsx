@@ -8,84 +8,122 @@ import AddEditTaskModal from "./components/AddEditTaskModal";
 import DeleteConfirmModal from "./components/DeleteConfirmModal";
 
 // If you have an Application type:
-import { Application, ApplicationStatus } from "@/context/TaskContext";
-// or wherever you store it
+import { Application } from "@/context/TaskContext";
 
 export default function AdminTasksPage() {
   // Pull tasks, applications, plus methods from your context
   const {
     tasks,
-    applications,         // <--- ensure your context provides this
+    applications,
     addTask,
     editTask,
     deleteTask,
-    approveApplication,    // <--- for marking "completed"
-    rejectApplication,     // <--- for marking "rejected"
+    approveApplication,
+    rejectApplication,
   } = useTasks();
 
   const [showAddEdit, setShowAddEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
 
-  // Separate tasks by type
-  const dailyTasks = tasks.filter((t) => t.type === "daily");
-  const specialTasks = tasks.filter((t) => t.type === "special");
+  // --- Sorting State ---
+  const [sortMode, setSortMode] = useState<"none" | "date" | "points">("none");
 
-  // Filter applications
+  // Helper to sort tasks based on the selected mode
+  function sortTasks(taskArr: Task[]): Task[] {
+    // Make a copy so we don’t mutate original
+    const copy = [...taskArr];
+    switch (sortMode) {
+      case "date":
+        // Sort by dueDate ascending; treat missing dueDate as 0
+        return copy.sort((a, b) => {
+          const aTime = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+          const bTime = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+          return aTime - bTime;
+        });
+      case "points":
+        // Sort by points descending
+        return copy.sort((a, b) => b.points - a.points);
+      default:
+        // "none" = no sorting
+        return taskArr;
+    }
+  }
+
+  // Filter tasks by type
+  const dailyTasksUnsorted = tasks.filter((t) => t.type === "daily");
+  const specialTasksUnsorted = tasks.filter((t) => t.type === "special");
+
+  // Sort them
+  const dailyTasks = sortTasks(dailyTasksUnsorted);
+  const specialTasks = sortTasks(specialTasksUnsorted);
+
+  // Filter applications for “pending” vs. “archived”
   const pendingRequests = applications.filter((app) => app.status === "pending");
   const archivedRequests = applications.filter(
     (app) => app.status === "completed" || app.status === "rejected"
   );
 
-  // Add Task
+  // --- Task CRUD logic ---
   const handleAddTask = () => {
     setCurrentTask(null);
     setShowAddEdit(true);
   };
 
-  // Save (Add or Edit)
   const handleSaveTask = (data: Omit<Task, "id">) => {
     if (currentTask) {
-      // editing
       editTask(currentTask.id, data);
     } else {
       addTask(data);
     }
   };
 
-  // Begin editing
   const handleEditTask = (task: Task) => {
     setCurrentTask(task);
     setShowAddEdit(true);
   };
 
-  // Begin delete flow
   const handleDeleteTask = (task: Task) => {
     setCurrentTask(task);
     setShowDelete(true);
   };
 
-  // Confirm delete
   const confirmDelete = () => {
     if (currentTask) {
       deleteTask(currentTask.id);
     }
   };
 
-  // Approve a pending request
+  // --- Application Approve/Reject ---
   const handleApprove = (applicationId: string) => {
     approveApplication(applicationId);
   };
-
-  // Reject a pending request
   const handleReject = (applicationId: string) => {
     rejectApplication(applicationId);
   };
 
   return (
     <main className="p-6">
-      <div className="mb-6 flex justify-between items-center">
+      {/* Top bar: Page title and Add Task button */}
+      <div className="mb-6 flex flex-wrap gap-4 justify-between items-center">
         <h1 className="text-2xl font-bold">Admin Tasks</h1>
+
+        {/* Sorting Dropdown */}
+        <div className="flex items-center gap-2">
+          <label className="font-medium">Sort by:</label>
+          <select
+            value={sortMode}
+            onChange={(e) =>
+              setSortMode(e.target.value as "none" | "date" | "points")
+            }
+            className="p-1 border rounded"
+          >
+            <option value="none">None</option>
+            <option value="date">Date</option>
+            <option value="points">Points</option>
+          </select>
+        </div>
+
         <button
           onClick={handleAddTask}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
@@ -140,9 +178,7 @@ export default function AdminTasksPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {pendingRequests.map((app) => {
-              // Optionally find the associated task to display info:
               const associatedTask = tasks.find((t) => t.id === app.taskId);
-
               return (
                 <div
                   key={app.id}
